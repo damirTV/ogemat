@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Автотесты игры</title>
+<style>
+  :root { --ok: #0F6B4E; --bad: #A8232C; --ink: #1F2340; --mute: #7A7466; --bg: #FFF8EC; --card: #fff; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  .lead { color: var(--mute); margin: 0 0 16px; }
+  .sum { padding: 14px 16px; border-radius: 12px; font-weight: 700; font-size: 18px; margin-bottom: 16px; background: #ECE7DB; }
+  .sum.ok { background: #DDF3EA; color: var(--ok); } .sum.bad { background: #FBE3E4; color: var(--bad); }
+  h2 { font-size: 16px; margin: 20px 0 6px; }
+  .row { padding: 3px 0 3px 22px; position: relative; }
+  .row::before { position: absolute; left: 0; font-weight: 700; }
+  .row.ok::before { content: "✓"; color: var(--ok); } .row.bad::before { content: "✗"; color: var(--bad); }
+  .row.bad { color: var(--bad); font-weight: 600; }
+  .det { display: block; font-weight: 400; color: var(--ink); font-size: 13px; background: #fff; border-radius: 6px; padding: 4px 8px; margin-top: 3px; word-break: break-word; }
+  button { font: inherit; padding: 8px 14px; border-radius: 10px; border: 1px solid #C9BFAE; background: var(--card); cursor: pointer; }
+  #stage { position: absolute; left: -10000px; top: 0; width: 390px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Автотесты игры</h1>
+  <p class="lead">Проверяют ответы во всех режимах и прогоняют каждый экран с нажатием кнопок. Прогресс ребёнка не затрагивается. Занимает 10–20 секунд.</p>
+  <div id="sum" class="sum">Идёт проверка…</div>
+  <button id="again" type="button">Запустить ещё раз</button>
+  <div id="out"></div>
+</main>
+<!-- Игра запускается в скрытом блоке: так проверяются настоящие экраны -->
+<div id="stage" aria-hidden="true"><div class="shell"><main id="app" class="app"></main></div><div id="live"></div></div>
+
+<script>
+  /* Подменяем хранилище, чтобы тесты не трогали настоящий прогресс и не включали звук */
+  (function () {
+    var mem = { 'oge-sound': '0' };
+    var fake = {
+      getItem: function (k) { return Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null; },
+      setItem: function (k, v) { mem[k] = String(v); }, removeItem: function (k) { delete mem[k]; },
+      clear: function () { mem = {}; }, key: function (i) { return Object.keys(mem)[i] || null; }
+    };
+    Object.defineProperty(fake, 'length', { get: function () { return Object.keys(mem).length; } });
+    try { Object.defineProperty(window, 'localStorage', { value: fake, configurable: true }); } catch (e) { window.__storageNotIsolated = true; }
+    window.__errors = [];
+    window.addEventListener('error', function (e) { window.__errors.push(e.message === 'Script error.' ? 'ошибка в скрипте игры (подробности: F12 → Console)' : e.message + (e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : '')); });
+    window.scrollTo = function () {};
+    window.confirm = function () { return true; };   /* «Завершить спринт?» не должен останавливать тесты */
+    window.alert = function () {};
+  })();
+</script>
+<script src="../logic.js"></script>
+<script src="../logic2.js"></script>
+<script src="../logic3.js"></script>
+<script src="../logic4.js"></script>
+<script src="../logic5.js"></script>
+<script src="../logic6.js"></script>
+<script src="../logic7.js"></script>
+<script src="../logic8.js"></script>
+<script src="../logic9.js"></script>
+<script src="../logic10.js"></script>
+<script src="../logic11.js"></script>
+<script src="../app.js"></script>
+<script>
+  /* Ловим случаи, когда один файл затирает действие другого с тем же именем */
+  (function () {
+    var target = window.OGE.ACT, owner = {};
+    /* Оборачиваем действия, чтобы видеть, какая кнопка сломалась и почему */
+    function wrap(name, fn) {
+      if (typeof fn !== 'function') return fn;
+      return function () {
+        try { return fn.apply(this, arguments); }
+        catch (e) { window.__errors.push('кнопка «' + name + '»: ' + e.message + ' (' + String(e.stack || '').split('\n').slice(1, 2).join('').replace(/^.*\//, '').replace(/\)$/, '') + ')'); }
+      };
+    }
+    Object.keys(target).forEach(function (k) { owner[k] = 'app.js'; target[k] = wrap(k, target[k]); });
+    window.__dupActs = [];
+    window.OGE.ACT = new Proxy(target, {
+      set: function (t, k, v) {
+        var src = (document.currentScript && document.currentScript.src.split('/').pop()) || '?';
+        if (Object.prototype.hasOwnProperty.call(t, k) && owner[k] !== src) window.__dupActs.push('«' + k + '» в ' + owner[k] + ' и ' + src);
+        owner[k] = src; t[k] = wrap(k, v); return true;
+      }
+    });
+  })();
+</script>
+<script src="../modes.js"></script>
+<script src="../modes2.js"></script>
+<script src="../modes3.js"></script>
+<script src="../modes4.js"></script>
+<script src="../modes5.js"></script>
+<script src="../modes6.js"></script>
+<script src="../modes7.js"></script>
+<script src="../modes8.js"></script>
+<script src="../modes9.js"></script>
+<script src="../feedback.js"></script>
+<script src="../sound.js"></script>
+<script src="logic-tests.js"></script>
+<script>
+(function () {
+  'use strict';
+  var out = document.getElementById('out'), sum = document.getElementById('sum');
+  var pass, fail, box;
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var T = {
+    group: function (name) { box = document.createElement('section'); box.innerHTML = '<h2>' + esc(name) + '</h2>'; out.appendChild(box); },
+    ok: function (cond, name, detail) {
+      if (cond) pass++; else fail++;
+      var d = document.createElement('div');
+      d.className = 'row ' + (cond ? 'ok' : 'bad');
+      d.innerHTML = esc(name) + (!cond && detail ? '<span class="det">' + esc(detail) + '</span>' : '');
+      box.appendChild(d);
+    }
+  };
+
+  /* Прогон экранов: запускаем каждый режим и много раз нажимаем случайные кнопки */
+  var SKIP = ['home', 'menu', 'home7', 'home15', 'home9', 'home11', 'home12', 'q-home', 'q-report', 'report15', 'report', 'report6', 'report7', 'help', 'sound', 'install', 'sp-exit'];
+  var STARTS = [
+    ['Прикидка (6)', 'start-prik'], ['Сапёр (6)', 'start-saper'], ['Числовая прямая (6)', 'start-numline'], ['Мастерская (6)', 'start-ws'],
+    ['Порядок действий (6)', 'start-orderops'], ['Рецептура (6)', 'start-recipe'], ['Спринт (6)', 'start-sp6'],
+    ['Прикидка (7)', 'start-prik7'], ['Сапёр (7)', 'start-saper7'], ['Числовая прямая (7)', 'start-nl7'], ['Мастерская сравнений (7)', 'start-ws7'],
+    ['Знаки и шкала (7)', 'start-sg7'], ['Лупа (7)', 'start-lp7'], ['Спринт (7)', 'start-sp7'],
+    ['Дачный участок', 'start-dc-build', ['home15'], '[data-ctx="dacha"]'], ['План местности', 'start-dc-build', ['home15'], '[data-ctx="map"]'],
+    ['Квартира', 'start-dc-build', ['home15'], '[data-ctx="flat"]'], ['Печь для бани', 'start-dc-build', ['home15'], '[data-ctx="stove"]'],
+    ['Листы бумаги', 'start-dc-build', ['home15'], '[data-ctx="paper"]'], ['Тарифы', 'start-dc-build', ['home15'], '[data-ctx="tariff"]'],
+    ['Шины', 'start-dc-build', ['home15'], '[data-ctx="tires"]'], ['Спринт 1–5', 'start-dc-sprint', ['home15']],
+    ['Задание 9: тренировка', 'q-train', ['home9']], ['Задание 9: сапёр', 'q-saper', ['home9']], ['Задание 9: спринт', 'q-sprint', ['home9']],
+    ['Задание 11: тренировка', 'q-train', ['home11']], ['Задание 11: сапёр', 'q-saper', ['home11']], ['Задание 11: конструктор', 'q-mode', ['home11'], '[data-m="ctor"]'],
+    ['Задание 11: блиц', 'q-mode', ['home11'], '[data-m="blitz"]'], ['Задание 11: спринт', 'q-sprint', ['home11']],
+    ['Задание 12: тренировка', 'q-train', ['home12']], ['Задание 12: прикидка', 'q-mode', ['home12'], '[data-m="est"]'], ['Задание 12: ловушки', 'q-mode', ['home12'], '[data-m="trap"]'],
+    ['Задание 12: блиц', 'q-mode', ['home12'], '[data-m="blitz"]'], ['Задание 12: спринт', 'q-sprint', ['home12']]
+  ];
+  function click(el) { el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); }
+  function key(k) { document.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })); }
+  function act(name) { var el = document.createElement('button'); el.setAttribute('data-act', name); app.appendChild(el); click(el); }
+  var app = document.getElementById('app');
+  function smoke(T) {
+    T.group('Экраны: каждый режим проходится без ошибок');
+    STARTS.forEach(function (s) {
+      var before = window.__errors.length, opened = true, ended = false;
+      for (var rep = 0; rep < 3; rep++) {
+        act('menu'); if (s[2]) s[2].forEach(act); else act(s[1].slice(-1) === '7' ? 'home7' : 'home');
+        var startSel = '[data-act="' + s[1] + '"]' + (s[3] || '');
+        if (!app.querySelector(startSel)) { opened = false; break; }
+        click(app.querySelector(startSel));
+        for (var i = 0; i < 400; i++) {
+          var els = Array.prototype.filter.call(app.querySelectorAll('[data-act]:not([disabled])'), function (e) { return SKIP.indexOf(e.getAttribute('data-act')) < 0; });
+          /* чаще нажимаем главную кнопку и проверку, чтобы доходить до конца раунда */
+          var prim = app.querySelector('[data-primary]:not([disabled])');
+          if (prim && Math.random() < 0.3) { click(prim); continue; }
+          if (!els.length || Math.random() < 0.1) { key(['1', '2', '3', '4', 'Enter', 'ArrowLeft', 'ArrowRight', '5', ',', 'Backspace'][Math.floor(Math.random() * 10)]); continue; }
+          click(els[Math.floor(Math.random() * els.length)]);
+          if (/Сыграть ещё|Итог|Результат|раунд/i.test(app.textContent) && app.querySelector('[data-act="' + s[1] + '"]')) ended = true;
+        }
+      }
+      var errs = window.__errors.slice(before);
+      T.ok(opened, s[0] + ': открывается из меню');
+      T.ok(!errs.length, s[0] + ': нет ошибок при игре', errs[0]);
+    });
+    act('menu');
+    ['report', 'report15'].forEach(function (a) {
+      var b = window.__errors.length; act(a);
+      T.ok(window.__errors.length === b && app.textContent.length > 100, (a === 'report' ? 'Отчёт для родителя' : 'Отчёт по заданию 1–5') + ': открывается без ошибок', window.__errors[b]);
+    });
+    act('menu');
+  }
+
+  function runAll() {
+    pass = 0; fail = 0; out.innerHTML = ''; sum.className = 'sum'; sum.textContent = 'Идёт проверка…';
+    setTimeout(function () {
+      var t0 = Date.now();
+      try { window.OGETests.run(window.Logic, T, { n: 120 }); } catch (e) { T.group('Сбой'); T.ok(false, 'Тесты логики остановились', e.message); }
+      T.group('Код: кнопки и действия');
+      T.ok(!window.__dupActs.length, 'Имена действий не повторяются в разных файлах (иначе одно затирает другое)', window.__dupActs.join('; '));
+      T.ok(!window.__storageNotIsolated, 'Тесты работают с отдельным хранилищем, прогресс не затронут');
+      try { smoke(T); } catch (e) { T.group('Сбой'); T.ok(false, 'Прогон экранов остановился', e.message); }
+      sum.className = 'sum ' + (fail ? 'bad' : 'ok');
+      sum.textContent = (fail ? 'Есть ошибки: ' + fail + ' из ' + (pass + fail) : 'Все проверки пройдены: ' + pass) + ' · ' + ((Date.now() - t0) / 1000).toFixed(1) + ' с';
+    }, 30);
+  }
+  document.getElementById('again').addEventListener('click', runAll);
+  runAll();
+})();
+</script>
+</body>
+</html>

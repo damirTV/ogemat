@@ -1,0 +1,16 @@
+{
+  "name": "ogemat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PWA trainer for OGE mathematics",
+  "scripts": {
+    "test": "node tests/run-tests.js",
+    "lint": "eslint .",
+    "format:check": "prettier --check .github scripts docs package.json eslint.config.mjs feedback-config.js",
+    "build": "node scripts/build.js"
+  },
+  "devDependencies": {
+    "eslint": "^10.14.0",
+    "prettier": "^3.10.0"
+  }
+}

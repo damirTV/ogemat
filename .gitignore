@@ -1,5 +1,8 @@
 # Runtime feedback storage created by feedback.php.
 feedback-data/
+dist/
+node_modules/
+.npm-cache/
 
 # Local OS and editor files.
 .DS_Store

@@ -1,18 +1,17 @@
 <?php
 /* Приём обратной связи из игры «ОГЭ по математике».
-   Принимает POST с JSON {id, kind, text, ts}, сохраняет в файл и присылает письмо.
-   Положите этот файл рядом с index.html. */
+   Настраивается переменными окружения веб-сервера, а не исходным кодом:
+   OGE_FEEDBACK_MAIL_TO, OGE_FEEDBACK_MAIL_FROM, OGE_FEEDBACK_DATA_DIR.
+   DATA_DIR обязан находиться вне публичной web-директории. */
 
-/* ===== НАСТРОЙКИ: измените три строки ниже ===== */
-const MAIL_TO   = 'damir@shakirov.tv';          // куда присылать сообщения (ваша почта)
-const MAIL_FROM = 'noreply@ogemat.ru';  // отправитель: ящик на ВАШЕМ домене (так письма реже попадают в спам)
 const SITE_NAME = 'ОГЭ по математике';
-/* ===== дальше менять не нужно ===== */
 
 const MIN_LEN = 5;
 const MAX_LEN = 2000;
 const LIMIT_PER_HOUR = 10;                    // не больше стольких сообщений в час с одного адреса
-const DATA_DIR = __DIR__ . '/feedback-data';  // сюда пишется копия всех сообщений
+$mailTo = getenv('OGE_FEEDBACK_MAIL_TO') ?: '';
+$mailFrom = getenv('OGE_FEEDBACK_MAIL_FROM') ?: '';
+$dataDir = getenv('OGE_FEEDBACK_DATA_DIR') ?: '';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -22,6 +21,10 @@ function reply($code, $ok) {
     echo json_encode(array('ok' => $ok));
     exit;
 }
+
+if ($mailTo === '' || $mailFrom === '' || $dataDir === '') reply(503, false);
+if (!preg_match('/^(?:[A-Za-z]:[\\\\\/]|\/)/', $dataDir)) reply(500, false);
+define('DATA_DIR', rtrim($dataDir, DIRECTORY_SEPARATOR));
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     header('Allow: POST');
@@ -42,11 +45,18 @@ if (!preg_match('/^[a-z0-9]{4,24}$/', $id)) reply(400, false);
 $len = function_exists('mb_strlen') ? mb_strlen($text, 'UTF-8') : strlen($text);
 if ($len < MIN_LEN || $len > MAX_LEN) reply(400, false);
 
-/* папка для данных; .htaccess закрывает её от скачивания через браузер (для Apache) */
+/* Папка находится вне web-root и создаётся при первом сообщении. */
 if (!is_dir(DATA_DIR)) {
     @mkdir(DATA_DIR, 0755, true);
-    @file_put_contents(DATA_DIR . '/.htaccess', "Require all denied\nDeny from all\n");
-    @file_put_contents(DATA_DIR . '/index.html', '');
+}
+
+/* Do not accept a storage directory inside the publicly served document root. */
+$docRoot = realpath($_SERVER['DOCUMENT_ROOT'] ?? '');
+$realDataDir = realpath(DATA_DIR);
+if ($docRoot !== false && $realDataDir !== false) {
+    $docRoot = rtrim(str_replace('\\', '/', strtolower($docRoot)), '/');
+    $realDataDir = rtrim(str_replace('\\', '/', strtolower($realDataDir)), '/');
+    if ($realDataDir === $docRoot || strpos($realDataDir, $docRoot . '/') === 0) reply(500, false);
 }
 
 /* простое ограничение частоты: по хэшу адреса, без хранения самого адреса */
@@ -72,12 +82,12 @@ $saved = @file_put_contents(DATA_DIR . '/messages.jsonl', $line, FILE_APPEND | L
 /* 2) письмо */
 $subject = '[' . SITE_NAME . '] ' . $kinds[$kind];
 $body    = "Тип: " . $kinds[$kind] . "\nВремя: " . date('d.m.Y H:i') . " (время сервера)\n\n" . $text . "\n";
-$from    = str_replace(array("\r", "\n"), '', MAIL_FROM);
+$from    = str_replace(array("\r", "\n"), '', $mailFrom);
 $headers = "From: " . $from . "\r\n"
          . "MIME-Version: 1.0\r\n"
          . "Content-Type: text/plain; charset=UTF-8\r\n"
          . "Content-Transfer-Encoding: 8bit\r\n";
-$mailed = @mail(MAIL_TO, '=?UTF-8?B?' . base64_encode($subject) . '?=', $body, $headers, '-f' . $from);
+$mailed = @mail($mailTo, '=?UTF-8?B?' . base64_encode($subject) . '?=', $body, $headers, '-f' . $from);
 
 /* успех, если сообщение сохранено хотя бы одним способом */
 reply(($saved || $mailed) ? 200 : 500, ($saved || $mailed));

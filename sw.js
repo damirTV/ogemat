@@ -1,8 +1,7 @@
-/* Офлайн-кэш: после первого открытия по http(s) игра работает без интернета.
-   Меняете файлы игры? Увеличьте номер версии в CACHE, чтобы телефоны обновились. */
-var CACHE = 'oge-calc-v19';
+/* Source uses a stable development cache. `npm run build` injects a content hash. */
+var CACHE = 'oge-calc-build';
 var ASSETS = [
-  './', 'index.html', 'styles.css', 'logic.js', 'logic2.js', 'logic3.js', 'logic4.js', 'logic5.js', 'logic6.js', 'logic7.js', 'logic8.js', 'logic9.js', 'logic10.js', 'logic11.js', 'app.js', 'modes.js', 'modes2.js', 'modes3.js', 'modes4.js', 'modes5.js', 'modes6.js', 'modes7.js', 'modes8.js', 'modes9.js', 'feedback.js', 'sound.js', 'manifest.webmanifest',
+  './', 'index.html', 'styles.css', 'logic.js', 'logic2.js', 'logic3.js', 'logic4.js', 'logic5.js', 'logic6.js', 'logic7.js', 'logic8.js', 'logic9.js', 'logic10.js', 'logic11.js', 'app.js', 'modes.js', 'modes2.js', 'modes3.js', 'modes4.js', 'modes5.js', 'modes6.js', 'modes7.js', 'modes8.js', 'modes9.js', 'feedback-config.js', 'feedback.js', 'sound.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png'
 ];
 
